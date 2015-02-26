@@ -50,4 +50,3 @@ options:
     type: string
     default: "trusty" 
     description: "ubuntu os release"
-

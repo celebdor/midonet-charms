@@ -12,19 +12,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-
 Overview
 ========
 
-This charm provides midonet-repository settings required for midocloud 
-for ubuntu.
-And also pre-install the puppet software which is required for midonet 
-juju charms. juju charms for midonet components are using the puppet 
-to install and configure their components
-
+  This charm will configure the repositories for OSS or MEM versions of MidoNet.
 
 Usage
 =====
-    juju deploy midonet-repository   
+  
+  juju deploy midonet-repository
 
  

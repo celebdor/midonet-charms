@@ -16,21 +16,10 @@ limitations under the License.
 Overview
 ========
 
-This charm provides Cassandra version2.0 along with open jdk7.
-Before deploying the midonet-cassandra make sure you already deployed
-midonet-repository juju charm in order to all the neccessary repositories
-for ubuntu.
-
-Provides the cassandra-relation-joined hook to set the ip's cassandra servers
-for dependency charms.
+This charm installs Apache Cassandra version2.0 which Midonet uses to store 
+flow state information, for example NAT bindings, connection tracking 
+information, and to support VM migration.
 
 Usage
 =====
     juju deploy midonet-cassandra
-   
-
-Note:
-=====
-    if you didnt deploy midonet-repositoy please run the below
-    juju deploy midonet-repository
- 

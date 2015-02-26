@@ -16,28 +16,14 @@ limitations under the License.
 Overview
 ========
 
-This charm install the  midonet-api. you may need to install the alond side 
-the zookeeper instane or along side neutron server instances.
-Midonet-API server can be hosted the Apcahe Tomcat servlet container.
-
-Before deploying the midonet-api make sure you already deployed
-midonet-repository juju charm in order to all the neccessary repositories
-for ubuntu.
-
-Requires the midonet-zookeeper 
+This charm installs the MidoNet API. This needs to be installed along side
+the zookeeper instance or the neutron server instances. Midonet API server 
+can be hosted by the Apcahe Tomcat servlet container. The midonet-repository 
+charm should be deployed prior to this charm. midonet-api requires the 
+midonet-zookeeper service.
 
 Usage
 =====
+    juju deploy midonet-zookeeper
     juju deploy midonet-api
     juju add-relation midonet-api midonet-zookeeper
-
-   
-
-Note:
-=====
-    Please makesure that you already installed the zookeeeper 
-    juju deploy midonet-zookeeper
-
-    if you didnt deploy midonet-repositoy please run the below
-    juju deploy midonet-repository
- 

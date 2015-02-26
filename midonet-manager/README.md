@@ -18,18 +18,8 @@ Overview
 
 This charm installs the midonet-manager software componenet for the midocloud
 
-Before deploying the midonet-cassandra make sure you already deployed
-midonet-repository juju charm in order to all the neccessary repositories
-for ubuntu.
-
-
 Usage
 =====
     juju deploy midonet-manager
-   
 
-Note:
-=====
-    if you didnt deploy midonet-repositoy please run the below
-    juju deploy midonet-repository
- 
+

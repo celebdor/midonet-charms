@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import re
 import os
 import sys
@@ -25,24 +24,53 @@ import subprocess
 import tempfile
 
 from charmhelpers.core import hookenv
-from charmhelpers.core import host
 
-def create_puppet_node_manifest():
+from charmhelpers.core.hookenv import (
+    Hooks,
+    config,
+    relation_get,
+    relation_ids,
+    relation_set,
+    related_units,
+    unit_get,
+)
+
+def create_puppet_node_manifest(zk_ips):
     """
     Creates and returns the puppet node manifest as a string.
     """
+    
+    zkhosts = []
     host_name = subprocess.check_output(["hostname"])
     host_name = host_name.strip()
+    config = hookenv.config()
+    # list the zookeeper server ips
+    hostips = zk_ips
+    ips = list(hostips.split(' '))
+    for ip in sorted(ips):
+        zkhosts.append("%s" %str(ip))
    
     return """
 
 node "%s" {
-    midonet_api::install {"%s":
+    midonet_api::configure {"%s":
+        keystone_admin_token => "%s",
+        keystone_service_host => "%s",
+        rest_api_base_url => "http://%s:8080/midonet-api",
+        zookeeper_hosts => "%s"
+    }
+    ->
+    midonet_api::start {"%s":
     }
 }
 """ % (
         host_name,
         host_name,
+        config['admin_token'],
+        config['keystone_ip'],
+        config['midonet_api_outer_ip'],
+        zkhosts,
+        host_name
       )
 
 def run_puppet_node_manifest(manifest, modules, branch):
@@ -94,15 +122,22 @@ sync
 
     return
 
-def install():
-    hookenv.log('Installing midonet-api')
+def puppet_config_apply(zookeeper_hosts):
  
     config = hookenv.config()
 
-    manifest = create_puppet_node_manifest()
+    manifest = create_puppet_node_manifest(zookeeper_hosts)
 
     run_puppet_node_manifest(manifest, config['midonet_puppet_modules'], config['midonet_puppet_modules_branch'])
 
+
+def relation_changed():
+    hookenv.log('midonet-api relation  changed with zookeeper')
+    config = hookenv.config()
+    zookeeper_hosts = relation_get('zookeeper_hosts')
+    if zookeeper_hosts:
+        puppet_config_apply(zookeeper_hosts)
+
 if __name__ == "__main__":
-    install()
-              
+    relation_changed()
+

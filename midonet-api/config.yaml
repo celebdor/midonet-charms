@@ -18,6 +18,10 @@ options:
     type: string
     default: "True"
     description: "enable debug"
+  admin_token:
+    type: string
+    default: "12345"
+    description: "admin token from keystone"
   midonet_puppet_modules:
     type: string
     default: "https://github.com/midonet/orizuru.git"
@@ -42,4 +46,3 @@ options:
     type: string
     default: "None"
     description: "get the zookeeper ip's from relation-changed"
-

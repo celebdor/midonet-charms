@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 # Copyright (c) 2015 Midokura SARL, All Rights Reserved.
 #
@@ -13,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#!/usr/bin/python
 
 import re
 import os
@@ -22,75 +22,111 @@ import setup
 import shutil
 import socket
 import subprocess
+import tempfile
+
 from charmhelpers.core import hookenv
 from charmhelpers.core import host
 
-def node_puppet_create(myid, zkhosts):
-    host_name = subprocess.check_output(["hostname"])
-    host_name = host_name.strip()
-    fd = open("node.pp","w")
-    node_def = """
-node %s {\n
-    hadoop-zookeeper::install {"%s":\n
-    }\n
-    ->\n
-    hadoop-zookeeper::configure {"%s":\n
-        myid => "%d",\n
-        ensemble => %s\n
-    }\n
-    ->\n
-    hadoop-zookeeper::start {"%s":\n
-    }\n
-}
-""" %(host_name,
-      host_name,
-      host_name,
-      myid,
-      zkhosts,
-      host_name)
-    fd.write("%s" % node_def)
-    fd.close()
-
-def install_zookeeper():
-    config = hookenv.config()
-    zkhosts = []
-    # create temporary directory
-    os.makedirs("/tmp/midonet", 0755)
-    os.chdir("/tmp/midonet")
-
+def create_puppet_node_manifest():
+    """
+    Creates and returns the puppet node manifest as a string.
+    """
     # the first cluster node myst have my_id 1
     zkid = 1
-
-    # construct the ensemble string
+    myid = 0
+    zkhosts = []
+    config = hookenv.config()
     host_name =  subprocess.check_output("hostname", shell=True)
+    host_name = host_name.strip()
     host_ip = socket.gethostbyname(host_name.strip())
     hostips = config['zookeeper_hosts']
     ips = list(hostips.split(' '))
     for ip in sorted(ips):
         zkhosts.append("%s:2888:3888" %str(ip))
         if ip == host_ip:
-            my_id = zkid
+            myid = zkid
         zkid = zkid + 1
 
-    #create the node.pp for puppet apply
-    node_puppet_create(my_id, zkhosts)
-    repo = config['midonet_puppet_modules']
-    branch = config['midonet_puppet_modules_branch']
-    git_cmd = "sudo git clone %s --branch %s" %(repo, branch)
-    subprocess.check_output(git_cmd, shell=True)
-    MODULEPATH = os.getcwd()+'/orizuru/puppet/modules'
-    PUPPET_NODE_DEFINITION = os.getcwd()+'/node.pp'
+    return """
 
-    # run the puppet apply command
-    command = "puppet apply --verbose --show_diff --modulepath=%s %s" %(MODULEPATH, PUPPET_NODE_DEFINITION)
-    output = subprocess.check_output(command, shell=True)
-    os.chdir("/tmp")
-    # delete temporary directory midonet 
-    shutil.rmtree("midonet")
+node "%s" {
+    hadoop-zookeeper::install {"%s":
+    }
+    ->
+    hadoop-zookeeper::configure {"%s":
+        myid => "%d",
+        ensemble => %s
+    }
+    ->
+    hadoop-zookeeper::start {"%s":
+    }
+}
+""" % (
+        host_name,
+        host_name,
+        host_name,
+        myid,
+        zkhosts,
+        host_name
+      )
+
+def run_puppet_node_manifest(manifest, modules, branch):
+    """
+    Run the manifest with the modules from github and a certain branch.
+    """
+    
+    temp = tempfile.NamedTemporaryFile()
+
+    temp.write(manifest)
+    
+    temp.seek(0)
+
+    try:
+        subprocess.check_output("""
+
+set -e
+
+NODE_MANIFEST="%s"
+
+PUPPET_MODULE_URL="%s"
+
+PUPPET_MODULE_BRANCH="%s"
+
+TMPDIR="/tmp/midonet-charms/$(mktemp -d -u)"
+
+mkdir -pv "${TMPDIR}"
+
+cd "${TMPDIR}"
+
+git clone "${PUPPET_MODULE_URL}" --branch "${PUPPET_MODULE_BRANCH}"
+
+cd "${TMPDIR}/orizuru/puppet/modules"
+
+puppet apply --verbose --debug --show_diff --modulepath=$(pwd) "${NODE_MANIFEST}"
+
+cd
+
+rm -rfv "${TMPDIR}"
+
+sync
+
+""" % (temp.name, modules, branch), shell=True)
+    except subprocess.CalledProcessError:
+        hookenv.log('Error applying the puppet module')
+        sys.exit(1)
+
+    temp.close()
+
+    return
 
 def install():
     hookenv.log('Installing midonet-zookeeper')
-    install_zookeeper()
+ 
+    config = hookenv.config()
+
+    manifest = create_puppet_node_manifest()
+
+    run_puppet_node_manifest(manifest, config['midonet_puppet_modules'], config['midonet_puppet_modules_branch'])
 
 if __name__ == "__main__":
     install()

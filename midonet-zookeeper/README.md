@@ -15,21 +15,18 @@ limitations under the License.
 Overview
 ========
 
-This charm provides zookeeper along with open jdk7 if its not installed
-Before deploying the midonet-cassandra make sure you already deployed
-midonet-repository juju charm in order to all the neccessary repositories
-for ubuntu.
-
-Provides the zookeeper-relation-joined hook to set the ip's zookeeper server
-for dependency charms.
+This charm installs Apache ZooKeeper which is used by Midonet to store 
+critical path data about the virtual and physical network topology.
 
 Usage
 =====
+
     juju deploy midonet-zookeeper
    
 
 Note:
 =====
-    if you didnt deploy midonet-repositoy please run the below
-    juju deploy midonet-repository
- 
+
+Ensure that the midonet-repository charm is deployed.
+
+juju deploy midonet-repository

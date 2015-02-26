@@ -92,8 +92,6 @@ def run_puppet_node_manifest(manifest, modules, branch):
 
     temp.seek(0)
     
-    print "NODE =%s" % temp.read()
-  
     try:
         subprocess.check_output("""
 

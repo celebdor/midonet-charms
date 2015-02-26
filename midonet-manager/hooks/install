@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 # Copyright (c) 2015 Midokura SARL, All Rights Reserved.
 #
@@ -13,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#!/usr/bin/python
+
 import re
 import os
 import sys
@@ -21,73 +22,104 @@ import setup
 import shutil
 import socket
 import subprocess
+import tempfile
 
 from charmhelpers.core import hookenv
 from charmhelpers.core import host
 
-def node_puppet_create(p_mod, m_api_oip):
-    host_name = subprocess.check_output(["hostname"])
-    host_name = host_name.strip()
-    fd = open("node.pp","w")
-    url = "http://%s:8080" % m_api_oip 
-    node_def = """
-node %s {\n
-    %s::install {"%s":\n
-    }\n
-    ->\n
-    %s::configure {"%s":\n
-        rest_api_base => "%s"\n
-    }\n
-    ->\n
-    %s::start {"%s":\n
-    }\n
-}
-""" %(host_name,
-      p_mod,
-      host_name,
-      p_mod,
-      host_name,
-      url,
-      p_mod,
-      host_name)
-    fd.write("%s" % node_def)
-    fd.close()
-
-def install_midonet_manager():
+def create_puppet_node_manifest():
+    """
+    Creates and returns the puppet node manifest as a string.
+    """
     config = hookenv.config()
-    zkhosts = []
-    # create temporary directory midonet
-    os.makedirs("/tmp/midonet", 0755)
-    os.chdir("/tmp/midonet")
-    # construct the ensemble string
-    host_name =  subprocess.check_output("hostname", shell=True)
+    host_name = subprocess.check_output("hostname", shell=True)
+    host_name = host_name.strip()
     host_ip = socket.gethostbyname(host_name.strip())
-    medo_api_ip = config['midonet_api_ip']
-    medo_api_oip = config['midonet_api_outer_ip']
+    mido_api_oip = config['midonet_api_outer_ip']
+    url = "http://%s:8080" % mido_api_oip     
     puppet_module = "midonet_manager18"
-    # create node.pp for puppet
-    node_puppet_create(puppet_module,
-                                   medo_api_oip) 
-    repo = config['midonet_puppet_modules']
-    branch = config['midonet_puppet_modules_branch']
-    git_cmd = "sudo git clone %s --branch %s" %(repo, branch)
-    subprocess.check_output(git_cmd, shell=True)
 
-    cmd = "sudo apt-get update --fix-missing"
-    subprocess.check_output(cmd, shell=True)
- 
-    MODULEPATH = os.getcwd()+'/orizuru/puppet/modules'
-    PUPPET_NODE_DEFINITION = os.getcwd()+'/node.pp'
-    command = "sudo puppet apply --verbose --debug --show_diff --modulepath=%s %s" %(MODULEPATH, PUPPET_NODE_DEFINITION)
-    output = subprocess.check_output(command, shell=True)
-    os.chdir("/tmp")
-    # delete temporary directory midonet
-    shutil.rmtree("midonet")
+    return """
+
+node "%s" {
+    %s::install {"%s":
+    }
+    ->
+    %s::configure {"%s":
+        rest_api_base => "%s"
+    }
+    ->
+    %s::start {"%s":
+    }
+}
+""" % (
+        host_name,
+        puppet_module,
+        host_name,
+        puppet_module,
+        host_name,
+        url,
+        puppet_module,
+        host_name
+      )
+
+def run_puppet_node_manifest(manifest, modules, branch):
+    """
+    Run the manifest with the modules from github and a certain branch.
+    """
+
+    temp = tempfile.NamedTemporaryFile()
+
+    temp.write(manifest)
+
+    temp.seek(0)
+
+    try:
+        subprocess.check_output("""
+
+set -e
+
+NODE_MANIFEST="%s"
+
+PUPPET_MODULE_URL="%s"
+
+PUPPET_MODULE_BRANCH="%s"
+
+TMPDIR="/tmp/midonet-charms/$(mktemp -d -u)"
+
+mkdir -pv "${TMPDIR}"
+
+cd "${TMPDIR}"
+
+git clone "${PUPPET_MODULE_URL}" --branch "${PUPPET_MODULE_BRANCH}"
+
+cd "${TMPDIR}/orizuru/puppet/modules"
+
+puppet apply --verbose --debug --show_diff --modulepath=$(pwd) "${NODE_MANIFEST}"
+
+cd
+
+rm -rfv "${TMPDIR}"
+
+sync
+
+""" % (temp.name, modules, branch), shell=True)
+    except subprocess.CalledProcessError:
+        hookenv.log('Error applying the puppet module')
+        sys.exit(1)
+
+    temp.close()
+
+    return
 
 def install():
     hookenv.log('Installing midonet-manager')
-    install_midonet_manager()
 
+    config = hookenv.config()
+
+    manifest = create_puppet_node_manifest()
+
+    run_puppet_node_manifest(manifest, config['midonet_puppet_modules'], config['midonet_puppet_modules_branch'])
 
 if __name__ == "__main__":
     install()

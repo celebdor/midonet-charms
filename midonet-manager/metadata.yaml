@@ -14,8 +14,8 @@
 # limitations under the License.
 #
 name: midonet-manager
-summary: juju charm for midonet-manager
-maintainer: Midokura
+summary: charm for deploying midonet-manager
+maintainer: Midokura SarL 
 description: |
   MidoNet Manager provides a single pane of glass view of all the bridges,
   routers, tenants, tunnel zones being managed by MidoNet and the agents.
@@ -26,5 +26,4 @@ tags:
 subordinate: false
 provides:
   midonet-manager:
-    interface: midonet
-
+    interface: midonet-manager

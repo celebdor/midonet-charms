@@ -22,7 +22,7 @@ options:
     type: string
     default: "https://github.com/midonet/orizuru.git"
     description: "Repository for midonet"
- midonet_puppet_modules_branch:
+  midonet_puppet_modules_branch:
     type: string
     default: "master" 
     description: "Branch on Repository"

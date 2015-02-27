@@ -27,7 +27,7 @@ import tempfile
 from charmhelpers.core import hookenv
 from charmhelpers.core import host
 
-import charmhelpers.fetch as fetch
+import charmhelpers as fetch
 
 def create_puppet_node_manifest():
     """

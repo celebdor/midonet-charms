@@ -26,7 +26,7 @@ import time
 from charmhelpers.core import hookenv
 from charmhelpers.core import host
 
-import charmhelpers.fetch as fetch
+import charmhelpers as fetch
 
 def configure_cassandra(cshosts, ip):
     # fill the cassandra.yaml

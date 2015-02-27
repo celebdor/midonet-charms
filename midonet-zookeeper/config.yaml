@@ -28,5 +28,5 @@ options:
     description: "Branch on Repository"
   zookeeper_hosts:
     type: string
-    default: "127.0.0.1 2.2.2.2"
+    default: "127.0.0.1"
     description: "list of zoo-keeper server ip's with one space e.g 'a.a.a.a b.b.b.b'"
